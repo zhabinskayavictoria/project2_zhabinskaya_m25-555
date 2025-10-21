@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "project2-zhabinskaya-m25-555"
+version = "0.1.0"
+description = ""
+authors = ["Victoria Zhabinskaya <zhabinskayavictoria@yandex.ru>"]
+readme = "README.md"
+packages = [
+     { include = "src" },
+]
+
+[tool.poetry.scripts]
+project = "src.primitive_db.main:main"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
