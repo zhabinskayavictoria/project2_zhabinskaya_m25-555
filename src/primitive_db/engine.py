@@ -49,6 +49,7 @@ def run():
             if metadata:
                 for t in metadata.keys():
                     print(f"- {t}")
+                print("\n")
             else:
                 print("Список таблиц пуст.\n")  
                 
