@@ -1,9 +1,7 @@
 import time
-from functools import wraps
 
 def handle_db_errors(func):
     """Декоратор для обработки ошибок БД"""
-    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -22,3 +20,19 @@ def handle_db_errors(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
+def confirm_action(action_name):
+    """
+    Фабрика декораторов для запроса подтверждения операции.
+    Отменяет, если ввод не 'y'
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            prompt = f'Вы уверены, что хотите выполнить "{action_name}"? [y/n]: '
+            resp = input(prompt).strip().lower()
+            if resp != 'y':
+                print("Операция отменена.")
+                return None
+            return func(*args, **kwargs)
+        wrapper.__name__ = func.__name__
+        return wrapper
+    return decorator
