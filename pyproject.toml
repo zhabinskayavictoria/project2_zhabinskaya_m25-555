@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "project2-zhabinskaya-m25-555"
 version = "0.1.0"
-description = ""
+description = "Primitive BD"
 authors = ["Victoria Zhabinskaya <zhabinskayavictoria@yandex.ru>"]
 readme = "README.md"
 packages = [
