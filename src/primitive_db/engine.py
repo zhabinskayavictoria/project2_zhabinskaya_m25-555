@@ -12,6 +12,7 @@ from .core import (
     select,
     update,
 )
+from .decorators import create_cacher
 from .parser import (
     parse_delete_command,
     parse_insert_command,
@@ -20,6 +21,7 @@ from .parser import (
 )
 from .utils import load_metadata, load_table_data, save_metadata, save_table_data
 
+select_cache = create_cacher()
 
 def print_help():
     """Выводит справочную информацию по доступным командам."""
@@ -73,7 +75,9 @@ def run():
                 continue
             table_name = args[1]
             metadata = drop_table(metadata, table_name)
-            save_metadata(META_FILE, metadata)
+            if metadata is not None:
+                save_metadata(META_FILE, metadata)
+                select_cache.clear_cache()
 
         elif command == "list_tables":
             if metadata:
@@ -89,6 +93,7 @@ def run():
                 data = insert(metadata, table_name, values)
                 if data is not None:
                     save_table_data(table_name, data)
+                    select_cache.clear_cache()
 
         elif command == 'select':
             table_name, where_clause = parse_select_command(user_input)
@@ -96,8 +101,10 @@ def run():
                 if table_name not in metadata:
                     print(f'Ошибка: таблица {table_name} не существует.\n')
                     continue
-                table_data = load_table_data(table_name)
-                result = select(table_data, where_clause)
+                cache_key = (table_name, str(where_clause))
+                result = select_cache(cache_key, 
+                lambda: select(load_table_data(table_name), where_clause)
+                )
                 if result:
                     table_meta = metadata[table_name]
                     columns = [col.split(':')[0] for col in table_meta['columns']]
@@ -109,7 +116,7 @@ def run():
                     print()
                 else:
                     print("Записей не найдено.\n")
-
+        
         elif command == 'update':
             table_name, set_clause, where_clause = parse_update_command(user_input)
             if table_name and set_clause and where_clause:
@@ -120,6 +127,7 @@ def run():
                 updated_data, updated_ids = update(table_data, set_clause, where_clause)
                 if updated_ids:
                     save_table_data(table_name, updated_data)
+                    select_cache.clear_cache()
                     for uid in updated_ids:
                         print(
                         f'Запись с ID={uid} в таблице "{table_name}" '
@@ -136,12 +144,16 @@ def run():
                     print(f'Ошибка: таблица {table_name} не существует.\n')
                     continue
                 table_data = load_table_data(table_name)
-                new_data, deleted_ids = delete(table_data, where_clause)
+                result = delete(table_data, where_clause)
+                if result is None:
+                    continue
+                new_data, deleted_ids = result
                 if deleted_ids:
                     save_table_data(table_name, new_data)
+                    select_cache.clear_cache()
                     for did in deleted_ids:
                         print(
-                            f'Запись с ID={did} успешно удаллена из таблицы '
+                            f'Запись с ID={did} успешно удалена из таблицы '
                             f'"{table_name}".'
                         )
                     print()

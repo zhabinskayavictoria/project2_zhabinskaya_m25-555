@@ -1,7 +1,10 @@
 from .constants import VALID_TYPES
+from .decorators import confirm_action, handle_db_errors, log_time
 from .utils import load_table_data
 
 
+@handle_db_errors
+@log_time
 def select(table_data, where_clause=None):
     """Выбирает записи из table_data"""
     if where_clause is None:
@@ -17,6 +20,7 @@ def select(table_data, where_clause=None):
     return filtered_data
 
 
+@handle_db_errors
 def update(table_data, set_clause, where_clause):
     """Находит записи по where_clause, обновляет в 
     найденных записях поля согласно set_clause"""
@@ -36,6 +40,8 @@ def update(table_data, set_clause, where_clause):
     return table_data, updated_ids
 
 
+@handle_db_errors
+@confirm_action("удаление записей")
 def delete(table_data, where_clause):
     """Находит записи по where_clause и удаляет их"""
     if not where_clause:
@@ -57,6 +63,8 @@ def delete(table_data, where_clause):
     return new_data, deleted_ids
 
 
+@handle_db_errors
+@log_time
 def insert(metadata, table_name, values):
     """Добавляет записи в таблицу"""
     if table_name not in metadata:
@@ -79,26 +87,22 @@ def insert(metadata, table_name, values):
     for col, val in zip(columns[1:], values):
         name, dtype = col.split(':')
         val = val.strip('"\'')  
-        try:
-            if dtype == 'int':
-                val = int(val)
-            elif dtype == 'bool':
-                val = val.lower() in ('true', '1')
-            elif dtype == 'str':
-                val = val
-            else:
-                print(f"Ошибка: неподдерживаемый тип данных {dtype}.\n")
-                return None
-        except ValueError:
-            print(f"Ошибка: неверное значение '{val}' для столбца {name}.\n")
-            return None
+        if dtype == 'int':
+            val = int(val)
+        elif dtype == 'bool':
+            val = val.lower() in ('true', '1')
+        elif dtype == 'str':
+            val = val
+        else:
+            raise ValueError(f"Неподдерживаемый тип данных {dtype}")
         new_record[name] = val
 
     data.append(new_record)
-    print(f'Запись с ID={new_id} успешно добавлена в таблицу "{table_name}".\n')
+    print(f'Запись с ID={new_id} успешно добавлена в таблицу "{table_name}".')
     return data
 
 
+@handle_db_errors
 def create_table(metadata, table_name, columns):
     """Создает таблицу с проверками и добавлением 
     ID:int (гарантированно первый столбец)"""
@@ -131,6 +135,8 @@ def create_table(metadata, table_name, columns):
     return metadata
 
 
+@handle_db_errors
+@confirm_action("удаление таблицы")
 def drop_table(metadata, table_name):
     """Удаляет таблицу, если она существует"""
     if table_name not in metadata:
